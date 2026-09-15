@@ -117,3 +117,23 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# macOS
+.DS_Store
+
+# Environment Variables
+.env
+.env.*
+
+# Keystores
+*.keystore
+
+# Crashlytics/Firebase
+crashlytics-build.properties
