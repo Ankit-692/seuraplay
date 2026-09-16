@@ -137,3 +137,4 @@ app.*.symbols
 
 # Crashlytics/Firebase
 crashlytics-build.properties
+privacy_site/
