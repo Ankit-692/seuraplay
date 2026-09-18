@@ -140,7 +140,6 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final String description;
   final Color iconColor;
-  final bool isCritical;
   final String? linkText;
   final VoidCallback? onLinkTap;
 
@@ -149,7 +148,6 @@ class _InfoCard extends StatelessWidget {
     required this.title,
     required this.description,
     required this.iconColor,
-    this.isCritical = false,
     this.linkText,
     this.onLinkTap,
   });
@@ -159,11 +157,11 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isCritical ? iconColor.withOpacity(0.05) : Colors.white.withOpacity(0.05),
+        color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isCritical ? iconColor.withOpacity(0.5) : Colors.white.withOpacity(0.1),
-          width: isCritical ? 1.5 : 1.0,
+          color: Colors.white.withOpacity(0.1),
+          width: 1.0,
         ),
       ),
       child: Row(
