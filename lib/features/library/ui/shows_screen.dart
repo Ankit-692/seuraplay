@@ -5,6 +5,7 @@ import '../providers/library_providers.dart';
 import '../../show_details/ui/show_details_screen.dart';
 import '../../../core/database/database.dart';
 import '../models/sort_option.dart';
+import '../providers/library_view_provider.dart';
 
 class ShowsScreen extends ConsumerStatefulWidget {
   const ShowsScreen({super.key});
@@ -31,7 +32,9 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
     // 2. Filter by search query
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
-      filtered = filtered.where((s) => s.title.toLowerCase().contains(query)).toList();
+      filtered = filtered
+          .where((s) => s.title.toLowerCase().contains(query))
+          .toList();
     }
 
     // 3. Sort
@@ -50,6 +53,7 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
   @override
   Widget build(BuildContext context) {
     final showsAsyncValue = ref.watch(savedShowsProvider);
+    final viewMode = ref.watch(libraryViewProvider);
 
     return DefaultTabController(
       length: 2,
@@ -71,12 +75,20 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
 
             return Column(
               children: [
-                _buildHeader(context),
+                _buildHeader(context, viewMode),
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _buildShowsList(watchingShows, 'No shows currently watching.'),
-                      _buildShowsList(planningShows, 'No shows in planning.'),
+                      _buildShowsList(
+                        watchingShows,
+                        'No shows currently watching.',
+                        viewMode,
+                      ),
+                      _buildShowsList(
+                        planningShows,
+                        'No shows in planning.',
+                        viewMode,
+                      ),
                     ],
                   ),
                 ),
@@ -84,13 +96,14 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error loading shows: $err')),
+          error: (err, stack) =>
+              Center(child: Text('Error loading shows: $err')),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, LibraryViewMode viewMode) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       color: Theme.of(context).scaffoldBackgroundColor,
@@ -122,12 +135,32 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
                         : null,
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.05),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 0,
+                      horizontal: 16,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    viewMode == LibraryViewMode.grid
+                        ? Icons.list
+                        : Icons.grid_view,
+                  ),
+                  onPressed: () =>
+                      ref.read(libraryViewProvider.notifier).toggle(),
+                  tooltip: 'Toggle View',
                 ),
               ),
               const SizedBox(width: 8),
@@ -144,14 +177,18 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
                       _currentSort = result;
                     });
                   },
-                  itemBuilder: (BuildContext context) => SortOption.values.map((option) {
+                  itemBuilder: (BuildContext context) => SortOption.values.map((
+                    option,
+                  ) {
                     return PopupMenuItem<SortOption>(
                       value: option,
                       child: Row(
                         children: [
                           Icon(
                             _currentSort == option ? Icons.check : Icons.circle,
-                            color: _currentSort == option ? Theme.of(context).primaryColor : Colors.transparent,
+                            color: _currentSort == option
+                                ? Theme.of(context).primaryColor
+                                : Colors.transparent,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
@@ -182,29 +219,197 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
     );
   }
 
-  Widget _buildShowsList(List<TvShow> shows, String emptyMessage) {
+  Widget _buildShowsList(
+    List<TvShow> shows,
+    String emptyMessage,
+    LibraryViewMode viewMode,
+  ) {
     if (shows.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? 'No shows match your search.' : emptyMessage,
+          _searchQuery.isNotEmpty
+              ? 'No shows match your search.'
+              : emptyMessage,
           style: const TextStyle(color: Colors.grey),
         ),
       );
     }
 
-    return ListView.builder(
+    if (viewMode == LibraryViewMode.grid) {
+      return GridView.builder(
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 2 / 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: shows.length,
+        itemBuilder: (context, index) {
+          final show = shows[index];
+          final isUpcoming =
+              show.nextEpisodeAirDate != null &&
+              show.nextEpisodeAirDate!.isAfter(DateTime.now());
+
+          return InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ShowDetailsScreen(showId: show.id),
+                ),
+              );
+            },
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: show.posterPath != null
+                        ? CachedNetworkImage(
+                            imageUrl:
+                                'https://image.tmdb.org/t/p/w500${show.posterPath}',
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                Container(color: Colors.grey[800]),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[800],
+                              child: const Icon(
+                                Icons.tv,
+                                color: Colors.white54,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[800],
+                            child: const Icon(Icons.tv, color: Colors.white54),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.9),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Text(
+                      show.title,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final summaryAsync = ref.watch(
+                        showProgressSummaryProvider(show.id),
+                      );
+                      return summaryAsync.when(
+                        data: (summary) {
+                          if (summary.isEmpty) return const SizedBox.shrink();
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.75),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(8),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              summary,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    },
+                  ),
+                ),
+                if (isUpcoming)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 4,
+                            offset: const Offset(-1, 1),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.calendar_month_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0),
       itemCount: shows.length,
+      separatorBuilder: (context, index) =>
+          Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
       itemBuilder: (context, index) {
         final show = shows[index];
-        return Card(
-          elevation: 0,
-          color: Colors.grey.withOpacity(0.08),
-          margin: const EdgeInsets.only(bottom: 12.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.white.withOpacity(0.05)),
-          ),
+
+        // Check if the show has an upcoming episode
+        final isUpcoming =
+            show.nextEpisodeAirDate != null &&
+            show.nextEpisodeAirDate!.isAfter(DateTime.now());
+
+        return Material(
+          color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
@@ -216,30 +421,78 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
               );
             },
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 10.0,
+                horizontal: 8.0,
+              ),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 50,
-                      height: 75,
-                      child: show.posterPath != null
-                          ? CachedNetworkImage(
-                              imageUrl: 'https://image.tmdb.org/t/p/w200${show.posterPath}',
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey[800],
+                  SizedBox(
+                    width: 55,
+                    height: 85,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: show.posterPath != null
+                                ? CachedNetworkImage(
+                                    imageUrl:
+                                        'https://image.tmdb.org/t/p/w200${show.posterPath}',
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        Container(color: Colors.grey[800]),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          color: Colors.grey[800],
+                                          child: const Icon(
+                                            Icons.tv,
+                                            color: Colors.white54,
+                                            size: 20,
+                                          ),
+                                        ),
+                                  )
+                                : Container(
+                                    color: Colors.grey[800],
+                                    child: const Icon(
+                                      Icons.tv,
+                                      color: Colors.white54,
+                                      size: 20,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        if (isUpcoming)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 3,
                               ),
-                              errorWidget: (context, url, error) => Container(
-                                color: Colors.grey[800],
-                                child: const Icon(Icons.tv, color: Colors.white54, size: 20),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(8),
+                                  topRight: Radius.circular(8),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    blurRadius: 4,
+                                    offset: const Offset(-1, 1),
+                                  ),
+                                ],
                               ),
-                            )
-                          : Container(
-                              color: Colors.grey[800],
-                              child: const Icon(Icons.tv, color: Colors.white54, size: 20),
+                              child: const Icon(
+                                Icons.calendar_month_rounded,
+                                color: Colors.white,
+                                size: 12,
+                              ),
                             ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -250,8 +503,9 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
                         Text(
                           show.title,
                           style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -260,15 +514,26 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
                         // Replace genres with the Next Episode indicator
                         Consumer(
                           builder: (context, ref, child) {
-                            final summaryAsync = ref.watch(showProgressSummaryProvider(show.id));
+                            final summaryAsync = ref.watch(
+                              showProgressSummaryProvider(show.id),
+                            );
                             return summaryAsync.when(
                               data: (summary) {
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                    color: Theme.of(
+                                      context,
+                                    ).primaryColor.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).primaryColor.withOpacity(0.3),
+                                    ),
                                   ),
                                   child: Text(
                                     summary,
@@ -280,7 +545,13 @@ class _ShowsScreenState extends ConsumerState<ShowsScreen> {
                                   ),
                                 );
                               },
-                              loading: () => const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                              loading: () => const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                               error: (_, __) => const SizedBox.shrink(),
                             );
                           },

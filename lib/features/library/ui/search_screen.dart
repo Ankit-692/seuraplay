@@ -30,32 +30,39 @@ class SearchScreen extends ConsumerWidget {
           children: [
             // --- SEARCH BAR ---
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search for shows or movies...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 16,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24.0),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).primaryColor,
-                      width: 2,
-                    ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
-                onSubmitted: (query) => searchController.search(query),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'Search for shows or movies...',
+                    hintStyle: const TextStyle(
+                      color: Colors.white30,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white30,
+                      size: 20,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onSubmitted: (query) => searchController.search(query),
+                ),
               ),
             ),
 
@@ -76,22 +83,26 @@ class SearchScreen extends ConsumerWidget {
                           children: const [
                             Icon(
                               Icons.warning_amber_rounded,
-                              size: 64,
+                              size: 48,
                               color: Colors.orangeAccent,
                             ),
                             SizedBox(height: 16),
                             Text(
                               'API Token Required',
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 12),
+                            SizedBox(height: 8),
                             Text(
                               'Please create a completely free TMDB account and paste the API Read Access Token in the Settings page to start searching.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey, height: 1.4),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                height: 1.4,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -115,12 +126,17 @@ class SearchScreen extends ConsumerWidget {
                   ? const Center(
                       child: Text(
                         'Type a name and hit enter to search.',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Colors.white30),
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 100.0),
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 100.0, top: 8.0),
                       itemCount: searchState.results.length,
+                      separatorBuilder: (context, index) => Divider(
+                        color: Colors.white.withValues(alpha: 0.02),
+                        height: 1,
+                        indent: 84, // Align with text
+                      ),
                       itemBuilder: (context, index) {
                         final item = searchState.results[index];
                         final isMovie = item['media_type'] == 'movie';
@@ -133,154 +149,211 @@ class SearchScreen extends ConsumerWidget {
                             ? item['release_date']
                             : item['first_air_date'];
 
-                        // --- NEW: Image URL Construction ---
                         final posterPath = item['poster_path'];
-                        // 'w200' is a small size perfect for list thumbnails
                         final imageUrl = posterPath != null
                             ? 'https://image.tmdb.org/t/p/w200$posterPath'
                             : null;
 
-                        return Card(
-                          elevation: 0,
-                          color: Colors.grey.withValues(alpha: 0.08),
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 8.0,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(12.0),
-                                  bottomLeft: Radius.circular(12.0),
-                                ),
-                                child: Container(
-                                  width: 80,
-                                  height: 120,
-                                  color: Colors.grey[800],
-                                  child: imageUrl != null
-                                      ? CachedNetworkImage(
-                                          imageUrl: imageUrl,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) =>
-                                              const Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                      ),
-                                                ),
-                                              ),
-                                          errorWidget: (context, url, error) =>
-                                              Icon(
-                                                isMovie
-                                                    ? Icons.movie
-                                                    : Icons.tv,
-                                                color: Colors.white54,
-                                                size: 32,
-                                              ),
-                                        )
-                                      : Icon(
-                                          isMovie ? Icons.movie : Icons.tv,
-                                          color: Colors.white54,
-                                          size: 32,
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title ?? 'Unknown Title',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '${isMovie ? "Movie" : "Show"} • ${year != null && year.toString().length >= 4 ? year.toString().substring(0, 4) : "N/A"}',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: IconButton(
-                                  icon: Icon(
-                                    isAdded
-                                        ? Icons.check_circle_rounded
-                                        : Icons.add_circle_outline_rounded,
-                                    color: isAdded
-                                        ? Colors.green
-                                        : Theme.of(context).primaryColor,
-                                    size: 28,
-                                  ),
-                                  onPressed: isAdded
-                                      ? null
-                                      : () async {
-                                          final libraryRepo = ref.read(
-                                            libraryRepositoryProvider,
-                                          );
-
-                                          // Show an immediate feedback snackbar
-                                          AppToasts.showInfo(
-                                            context,
-                                            'Adding $title...',
-                                          );
-
-                                          try {
-                                            if (isMovie) {
-                                              await libraryRepo.addMovie(
-                                                item['id'],
-                                              );
-                                            } else {
-                                              await libraryRepo.addTvShow(
-                                                item['id'],
-                                              );
-                                            }
-
-                                            if (context.mounted) {
-                                              AppToasts.showSuccess(
-                                                context,
-                                                '$title added to Library!',
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              AppToasts.showError(
-                                                context,
-                                                'Error adding $title: $e',
-                                              );
-                                            }
-                                          }
-                                        },
-                                ),
-                              ),
-                            ],
-                          ),
+                        return _SearchResultTile(
+                          item: item,
+                          isMovie: isMovie,
+                          isAdded: isAdded,
+                          title: title,
+                          year: year,
+                          imageUrl: imageUrl,
                         );
                       },
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SearchResultTile extends ConsumerStatefulWidget {
+  final dynamic item;
+  final bool isMovie;
+  final bool isAdded;
+  final String? title;
+  final dynamic year;
+  final String? imageUrl;
+
+  const _SearchResultTile({
+    required this.item,
+    required this.isMovie,
+    required this.isAdded,
+    required this.title,
+    required this.year,
+    required this.imageUrl,
+  });
+
+  @override
+  ConsumerState<_SearchResultTile> createState() => _SearchResultTileState();
+}
+
+class _SearchResultTileState extends ConsumerState<_SearchResultTile> {
+  bool _isAdding = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Sleek small thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.0),
+            child: Container(
+              width: 55,
+              height: 80,
+              color: Colors.white.withValues(alpha: 0.02),
+              child: widget.imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: widget.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Icon(
+                        widget.isMovie ? Icons.movie_rounded : Icons.tv_rounded,
+                        color: Colors.white12,
+                        size: 24,
+                      ),
+                    )
+                  : Icon(
+                      widget.isMovie ? Icons.movie_rounded : Icons.tv_rounded,
+                      color: Colors.white12,
+                      size: 24,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Text Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title ?? 'Unknown Title',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    letterSpacing: -0.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${widget.isMovie ? "Movie" : "Show"} • ${widget.year != null && widget.year.toString().length >= 4 ? widget.year.toString().substring(0, 4) : "N/A"}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Compact Animated Button
+          const SizedBox(width: 12),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: widget.isAdded || _isAdding
+                  ? null
+                  : () async {
+                      setState(() {
+                        _isAdding = true;
+                      });
+
+                      final libraryRepo = ref.read(libraryRepositoryProvider);
+
+                      try {
+                        if (widget.isMovie) {
+                          await libraryRepo.addMovie(widget.item['id']);
+                        } else {
+                          await libraryRepo.addTvShow(widget.item['id']);
+                        }
+
+                        if (context.mounted) {
+                          AppToasts.showSuccess(
+                            context,
+                            '${widget.title} added!',
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          AppToasts.showError(context, 'Error: $e');
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isAdding = false;
+                          });
+                        }
+                      }
+                    },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: widget.isAdded
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.isAdded
+                        ? Colors.green.withValues(alpha: 0.3)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(
+                        scale: animation,
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: _isAdding
+                        ? const SizedBox(
+                            key: ValueKey<int>(1),
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white70,
+                            ),
+                          )
+                        : Icon(
+                            widget.isAdded
+                                ? Icons.check_rounded
+                                : Icons.add_rounded,
+                            key: ValueKey<bool>(widget.isAdded),
+                            color: widget.isAdded
+                                ? Colors.green
+                                : Colors.white70,
+                            size: 18,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

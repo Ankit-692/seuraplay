@@ -56,6 +56,11 @@ class DriveBackupService {
     }
   }
 
+  /// Triggers the Google Sign-in flow to authenticate the user
+  Future<void> authenticate() async {
+    await _getDriveApi();
+  }
+
   /// Uploads the local Drift SQLite database to Google Drive
   Future<void> backupDatabaseToDrive() async {
     final driveApi = await _getDriveApi();

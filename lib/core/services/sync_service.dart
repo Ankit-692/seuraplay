@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../database/database.dart';
 import '../network/tmdb_repository.dart';
@@ -44,9 +45,16 @@ class SyncService {
       }
 
       // 3. Google Drive Backup
-      print('Starting Google Drive backup...');
-      final driveService = DriveBackupService();
-      await driveService.backupDatabaseToDrive();
+      final prefs = await SharedPreferences.getInstance();
+      final isAutoBackupEnabled = prefs.getBool('is_auto_backup_enabled') ?? false;
+
+      if (isAutoBackupEnabled) {
+        print('Starting Google Drive backup...');
+        final driveService = DriveBackupService();
+        await driveService.backupDatabaseToDrive();
+      } else {
+        print('Skipping Google Drive backup (auto-backup disabled).');
+      }
 
       print('Daily sync completed successfully!');
     } catch (e) {

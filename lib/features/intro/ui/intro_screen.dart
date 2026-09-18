@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:seuraplay/features/home/main_screen.dart';
 
 class IntroScreen extends StatelessWidget {
@@ -79,11 +80,12 @@ class IntroScreen extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _InfoCard(
-                      icon: Icons.warning_amber_rounded,
-                      title: 'CRITICAL: TMDB Token Required',
-                      description: 'The app will NOT work without this! You must create a free TMDB account and paste the API Read Access Token in the Settings page to get movie and TV show data.',
-                      iconColor: Colors.orangeAccent,
-                      isCritical: true,
+                      icon: Icons.movie_filter_rounded,
+                      title: 'Powered by TMDB',
+                      description: 'To fetch all the latest movie and TV show data, Seuraplay uses the TMDB database. Just create a free account to get your personal API Read Access Token (the much longer "v4 auth" one) and paste it in the Settings page!',
+                      iconColor: Colors.blueAccent,
+                      linkText: 'Create a free TMDB account',
+                      onLinkTap: () => launchUrl(Uri.parse('https://www.themoviedb.org/signup')),
                     ),
                     const SizedBox(height: 16),
                     _InfoCard(
@@ -139,6 +141,8 @@ class _InfoCard extends StatelessWidget {
   final String description;
   final Color iconColor;
   final bool isCritical;
+  final String? linkText;
+  final VoidCallback? onLinkTap;
 
   const _InfoCard({
     required this.icon,
@@ -146,6 +150,8 @@ class _InfoCard extends StatelessWidget {
     required this.description,
     required this.iconColor,
     this.isCritical = false,
+    this.linkText,
+    this.onLinkTap,
   });
 
   @override
@@ -197,6 +203,25 @@ class _InfoCard extends StatelessWidget {
                     color: Colors.white.withOpacity(0.7),
                   ),
                 ),
+                if (linkText != null && onLinkTap != null) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: onLinkTap,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        linkText!,
+                        style: TextStyle(
+                          color: iconColor,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                          decorationColor: iconColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
