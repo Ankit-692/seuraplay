@@ -38,12 +38,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           // --- TMDB API KEY SECTION ---
           const Text(
-            'TMDB API Key',
+            'TMDB API Read Access Token',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Seuraplay requires a free TMDB Read Access Token to fetch show data. We never store this key on any server.',
+            'Seuraplay requires a free TMDB API Read Access Token to fetch show data. Please ensure you use the much longer "v4 auth" token, not the short v3 API Key.',
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -99,6 +99,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 40),
           const Divider(),
+          const SizedBox(height: 24),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.5)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.blue, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Highly Recommended',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Please run a manual backup (either local or cloud) before uninstalling the app to keep your data safe and updated.',
+                        style: TextStyle(
+                          color: Colors.lightBlueAccent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
 
           // --- LOCAL BACKUP SECTION ---
@@ -230,10 +270,96 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Your data is automatically synced to a hidden folder in your Google Drive every 24 hours. You can also force a sync manually below.',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            'When you open the app, we automatically sync your library to a hidden Google Drive folder once a day. Need to force a backup right now? Just hit the manual sync below.',
+            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withOpacity(0.5)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Multi-Device Warning',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'If you use the same Google account on multiple devices with Auto-Backup enabled, the device that syncs last will overwrite the other. To prevent data loss, only enable Auto-Backup on your primary device.',
+                        style: TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
+          
+          ref.watch(autoBackupProvider).when(
+            data: (isAutoBackupEnabled) => SwitchListTile(
+              tileColor: Theme.of(context).cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              secondary: const Icon(
+                Icons.sync_rounded,
+                color: Colors.white,
+              ),
+              title: const Text('Enable Automatic Cloud Backup'),
+              subtitle: const Padding(
+                padding: EdgeInsets.only(top: 4.0),
+                child: Text(
+                  'Auto-sync once a day',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ),
+              activeColor: Theme.of(context).primaryColor,
+              value: isAutoBackupEnabled,
+              onChanged: settingsState.isTogglingAutoBackup
+                  ? null
+                  : (value) async {
+                      try {
+                        await settingsController.toggleAutoBackup(value);
+                        ref.invalidate(autoBackupProvider);
+                        if (context.mounted) {
+                          if (value) {
+                            AppToasts.showSuccess(context, 'Auto backup enabled!');
+                          } else {
+                            AppToasts.showSuccess(context, 'Auto backup disabled.');
+                          }
+                        }
+                      } catch (e) {
+                        ref.invalidate(autoBackupProvider); // Re-fetch on error to revert toggle
+                        if (context.mounted) {
+                          AppToasts.showError(context, 'Setup cancelled or failed.');
+                        }
+                      }
+                    },
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Text('Error loading setting: $err'),
+          ),
+          
+          const SizedBox(height: 12),
 
           ListTile(
             tileColor: Theme.of(context).cardColor,
@@ -373,6 +499,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : () async {
                     try {
                       await settingsController.signOutCloud();
+                      ref.invalidate(autoBackupProvider);
                       if (context.mounted) {
                         AppToasts.showSuccess(context, 'Signed out successfully.');
                       }

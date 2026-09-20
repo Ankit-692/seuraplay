@@ -7,6 +7,7 @@ import '../../../core/database/database.dart';
 import '../providers/show_details_provider.dart';
 import '../../library/repositories/library_repository.dart';
 import '../../../core/utils/app_toasts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ShowDetailsScreen extends ConsumerWidget {
   final int showId;
 
@@ -49,6 +50,58 @@ class ShowDetailsScreen extends ConsumerWidget {
                 expandedHeight: 320,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    onPressed: () async {
+                      const storage = FlutterSecureStorage();
+                      final token = await storage.read(key: 'user_tmdb_token');
+
+                      if (!context.mounted) return;
+
+                      if (token == null || token.trim().isEmpty) {
+                        AppToasts.showInfo(context, 'Missing TMDB API Token. Please update it in Settings.');
+                        return;
+                      }
+
+                      AppToasts.showInfo(context, 'Refreshing show data...');
+                      try {
+                        await ref.read(libraryRepositoryProvider).addTvShow(showId);
+                        if (context.mounted) {
+                          AppToasts.showSuccess(context, 'Show data updated successfully!');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          if (e.toString().contains('401')) {
+                            AppToasts.showError(context, 'Invalid TMDB API Token. Please update it in Settings.');
+                          } else {
+                            AppToasts.showError(context, 'Failed to refresh: $e');
+                          }
+                        }
+                      }
+                    },
+                  ),
+                  if (show.status != 'dropped')
+                    IconButton(
+                      icon: const Icon(Icons.archive_outlined, color: Colors.orangeAccent),
+                      tooltip: 'Drop Show',
+                      onPressed: () async {
+                        await ref.read(libraryRepositoryProvider).updateTvShowStatus(showId, 'dropped');
+                        if (context.mounted) {
+                          AppToasts.showInfo(context, 'Show moved to Dropped.');
+                        }
+                      },
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.unarchive_outlined, color: Colors.greenAccent),
+                      tooltip: 'Move to Planning',
+                      onPressed: () async {
+                        await ref.read(libraryRepositoryProvider).updateTvShowStatus(showId, 'planning');
+                        if (context.mounted) {
+                          AppToasts.showInfo(context, 'Show moved to Planning.');
+                        }
+                      },
+                    ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                     onPressed: () async {
@@ -552,34 +605,57 @@ class _SeasonAccordion extends ConsumerWidget {
                       ),
                       const Divider(height: 1, color: Colors.white12),
                       ...episodes.map((ep) {
+                        final isUnaired = ep.airDate != null && ep.airDate!.isAfter(DateTime.now());
+
                         return ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                           title: Text(
                             'E${ep.episodeNumber}: ${ep.title}',
                             style: TextStyle(
-                              color: ep.isWatched ? Colors.white54 : Colors.white,
+                              color: ep.isWatched 
+                                  ? Colors.white54 
+                                  : (isUnaired ? Colors.white54 : Colors.white),
+                              fontStyle: (isUnaired && !ep.isWatched) ? FontStyle.italic : FontStyle.normal,
                             ),
                           ),
                           subtitle: ep.airDate != null
                               ? Text(
-                                  'Aired: ${ep.airDate!.toLocal().toString().split(' ')[0]}',
+                                  '${isUnaired ? 'Airing' : 'Aired'}: ${ep.airDate!.toLocal().toString().split(' ')[0]}',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.white38,
                                   ),
                                 )
                               : null,
-                          trailing: IconButton(
-                            icon: Icon(
-                              ep.isWatched ? Icons.check_circle : Icons.circle_outlined,
-                              color: ep.isWatched ? Theme.of(context).primaryColor : Colors.white38,
-                            ),
-                            onPressed: () {
+                          trailing: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              if (isUnaired && !ep.isWatched) {
+                                AppToasts.showInfo(context, 'This hasn\'t aired yet. Long press to mark as watched.');
+                                return;
+                              }
                               ref
                                   .read(episodeControllerProvider)
                                   .toggleWatched(ep.id, ep.isWatched);
                             },
+                            onLongPress: () {
+                              if (isUnaired && !ep.isWatched) {
+                                ref
+                                    .read(episodeControllerProvider)
+                                    .toggleWatched(ep.id, ep.isWatched);
+                                AppToasts.showSuccess(context, 'Marked unaired episode as watched.');
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Icon(
+                                ep.isWatched ? Icons.check_circle : (isUnaired ? Icons.schedule : Icons.circle_outlined),
+                                color: ep.isWatched 
+                                    ? Theme.of(context).primaryColor 
+                                    : (isUnaired ? Colors.white38 : Colors.white38),
+                              ),
+                            ),
                           ),
                         );
                       }),

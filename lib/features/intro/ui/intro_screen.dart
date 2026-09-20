@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:seuraplay/features/home/main_screen.dart';
 
 class IntroScreen extends StatelessWidget {
@@ -79,17 +80,18 @@ class IntroScreen extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _InfoCard(
-                      icon: Icons.warning_amber_rounded,
-                      title: 'CRITICAL: TMDB Token Required',
-                      description: 'The app will NOT work without this! You must create a free TMDB account and paste the API Read Access Token in the Settings page to get movie and TV show data.',
-                      iconColor: Colors.orangeAccent,
-                      isCritical: true,
+                      icon: Icons.movie_filter_rounded,
+                      title: 'Powered by TMDB',
+                      description: 'To fetch all the latest movie and TV show data, Seuraplay uses the TMDB database. Just create a free account to get your personal API Read Access Token (the much longer "v4 auth" one) and paste it in the Settings page!',
+                      iconColor: Colors.blueAccent,
+                      linkText: 'Create a free TMDB account',
+                      onLinkTap: () => launchUrl(Uri.parse('https://www.themoviedb.org/signup')),
                     ),
                     const SizedBox(height: 16),
                     _InfoCard(
                       icon: Icons.cloud_done_rounded,
                       title: 'Cloud & Local Backups',
-                      description: 'Data is backed up every 24hrs to Google Drive automatically. You can also manually backup and restore locally or to the cloud via the settings page.',
+                      description: 'Never lose your watch history. When you open the app, we automatically sync your progress to Google Drive once a day. You can also run a manual backup anytime in settings.',
                       iconColor: Colors.greenAccent,
                     ),
                     const SizedBox(height: 16),
@@ -138,14 +140,16 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final String description;
   final Color iconColor;
-  final bool isCritical;
+  final String? linkText;
+  final VoidCallback? onLinkTap;
 
   const _InfoCard({
     required this.icon,
     required this.title,
     required this.description,
     required this.iconColor,
-    this.isCritical = false,
+    this.linkText,
+    this.onLinkTap,
   });
 
   @override
@@ -153,11 +157,11 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isCritical ? iconColor.withOpacity(0.05) : Colors.white.withOpacity(0.05),
+        color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isCritical ? iconColor.withOpacity(0.5) : Colors.white.withOpacity(0.1),
-          width: isCritical ? 1.5 : 1.0,
+          color: Colors.white.withOpacity(0.1),
+          width: 1.0,
         ),
       ),
       child: Row(
@@ -197,6 +201,25 @@ class _InfoCard extends StatelessWidget {
                     color: Colors.white.withOpacity(0.7),
                   ),
                 ),
+                if (linkText != null && onLinkTap != null) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: onLinkTap,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        linkText!,
+                        style: TextStyle(
+                          color: iconColor,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                          decorationColor: iconColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

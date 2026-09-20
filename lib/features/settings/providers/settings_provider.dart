@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/drive_backup_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +17,12 @@ final tmdbTokenProvider = FutureProvider<String>((ref) async {
   return await storage.read(key: 'user_tmdb_token') ?? '';
 });
 
+// Fetches the auto backup status so the UI can display it
+final autoBackupProvider = FutureProvider<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('is_auto_backup_enabled') ?? false;
+});
+
 class SettingsState {
   final bool isSavingToken;
   final bool isBackingUp;
@@ -23,6 +30,7 @@ class SettingsState {
   final bool isLocalBackingUp;
   final bool isLocalRestoring;
   final bool isSigningOutCloud;
+  final bool isTogglingAutoBackup;
 
   SettingsState({
     this.isSavingToken = false,
@@ -31,6 +39,7 @@ class SettingsState {
     this.isLocalBackingUp = false,
     this.isLocalRestoring = false,
     this.isSigningOutCloud = false,
+    this.isTogglingAutoBackup = false,
   });
 
   SettingsState copyWith({
@@ -40,6 +49,7 @@ class SettingsState {
     bool? isLocalBackingUp,
     bool? isLocalRestoring,
     bool? isSigningOutCloud,
+    bool? isTogglingAutoBackup,
   }) {
     return SettingsState(
       isSavingToken: isSavingToken ?? this.isSavingToken,
@@ -48,6 +58,7 @@ class SettingsState {
       isLocalBackingUp: isLocalBackingUp ?? this.isLocalBackingUp,
       isLocalRestoring: isLocalRestoring ?? this.isLocalRestoring,
       isSigningOutCloud: isSigningOutCloud ?? this.isSigningOutCloud,
+      isTogglingAutoBackup: isTogglingAutoBackup ?? this.isTogglingAutoBackup,
     );
   }
 }
@@ -63,11 +74,32 @@ class SettingsController extends StateNotifier<SettingsState> {
     state = state.copyWith(isSavingToken: false);
   }
 
+  Future<void> toggleAutoBackup(bool enable) async {
+    state = state.copyWith(isTogglingAutoBackup: true);
+    try {
+      if (enable) {
+        // Authenticate first before enabling auto backup
+        final driveService = DriveBackupService();
+        await driveService.authenticate();
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_auto_backup_enabled', enable);
+    } catch (e) {
+      rethrow;
+    } finally {
+      state = state.copyWith(isTogglingAutoBackup: false);
+    }
+  }
+
   Future<void> signOutCloud() async {
     state = state.copyWith(isSigningOutCloud: true);
     try {
       final driveService = DriveBackupService();
       await driveService.signOut();
+      
+      // Also disable auto backup on sign out
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_auto_backup_enabled', false);
     } catch (e) {
       rethrow;
     } finally {
