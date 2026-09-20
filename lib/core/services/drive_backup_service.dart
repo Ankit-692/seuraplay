@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:path_provider/path_provider.dart';
@@ -64,7 +65,7 @@ class DriveBackupService {
       return drive.DriveApi(authenticateClient);
     } catch (e) {
       if (isSilent) {
-        print('Silent Auth Error: $e');
+        if (kDebugMode) print('Silent Auth Error: $e');
         return null;
       }
       // Re-throw so the UI (SnackBar) can display exactly what went wrong

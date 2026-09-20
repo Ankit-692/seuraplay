@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../database/database.dart';
 import '../network/tmdb_repository.dart';
@@ -10,7 +11,7 @@ class SyncService {
   /// This function runs the entire update process.
   /// It is designed to be safe to call from a background isolate.
   static Future<void> performDailySync() async {
-    print('Starting daily background sync...');
+    if (kDebugMode) print('Starting daily background sync...');
 
     // 1. Manually initialize dependencies for the background isolate
     final db = AppDatabase();
@@ -40,16 +41,16 @@ class SyncService {
 
       // Loop through and update them to fetch new seasons/episodes
       for (var show in watchingShows) {
-        print('Updating TMDB data for: ${show.title}');
+        if (kDebugMode) print('Updating TMDB data for: ${show.title}');
         try {
           await libraryRepo.addTvShow(show.id);
         } catch (e) {
-          print('TMDB Update failed for ${show.title}: $e');
+          if (kDebugMode) print('TMDB Update failed for ${show.title}: $e');
           // We continue to the next show instead of failing the whole sync
         }
       }
     } catch (e) {
-      print('Failed to fetch watching shows for TMDB update: $e');
+      if (kDebugMode) print('Failed to fetch watching shows for TMDB update: $e');
     }
 
     try {
@@ -59,16 +60,16 @@ class SyncService {
           prefs.getBool('is_auto_backup_enabled') ?? false;
 
       if (isAutoBackupEnabled) {
-        print('Starting Google Drive backup...');
+        if (kDebugMode) print('Starting Google Drive backup...');
         final driveService = DriveBackupService();
         await driveService.backupDatabaseToDrive(isSilent: true);
       } else {
-        print('Skipping Google Drive backup (auto-backup disabled).');
+        if (kDebugMode) print('Skipping Google Drive backup (auto-backup disabled).');
       }
 
-      print('Daily sync completed successfully!');
+      if (kDebugMode) print('Daily sync completed successfully!');
     } catch (e) {
-      print('Daily sync backup failed: $e');
+      if (kDebugMode) print('Daily sync backup failed: $e');
     } finally {
       // Close the DB connection so the background isolate doesn't hold it hostage
       await db.close();
@@ -90,17 +91,19 @@ class SyncService {
         final lastSyncTime = DateTime.tryParse(lastSyncString);
         if (lastSyncTime != null) {
           final difference = DateTime.now().difference(lastSyncTime);
-          if (difference.inHours < 0) {
+          if (difference.inHours < 24) {
             // Less than 24 hours have passed, skip sync
-            print(
-              'Auto-sync skipped: Last sync was ${difference.inHours} hours ago.',
-            );
+            if (kDebugMode) {
+              print(
+                'Auto-sync skipped: Last sync was ${difference.inHours} hours ago.',
+              );
+            }
             return;
           }
         }
       }
 
-      print('Triggering on-launch auto-sync...');
+      if (kDebugMode) print('Triggering on-launch auto-sync...');
       await performDailySync();
 
       // Update the last sync time
@@ -109,7 +112,7 @@ class SyncService {
         DateTime.now().toIso8601String(),
       );
     } catch (e) {
-      print('Auto-sync check failed: $e');
+      if (kDebugMode) print('Auto-sync check failed: $e');
     }
   }
 }
