@@ -91,7 +91,7 @@ class IntroScreen extends StatelessWidget {
                     _InfoCard(
                       icon: Icons.cloud_done_rounded,
                       title: 'Cloud & Local Backups',
-                      description: 'Data is backed up every 24hrs to Google Drive automatically. You can also manually backup and restore locally or to the cloud via the settings page.',
+                      description: 'Never lose your watch history. When you open the app, we automatically sync your progress to Google Drive once a day. You can also run a manual backup anytime in settings.',
                       iconColor: Colors.greenAccent,
                     ),
                     const SizedBox(height: 16),

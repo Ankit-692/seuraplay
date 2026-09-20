@@ -21,6 +21,17 @@ class LibraryRepository {
 
   /// Fetches a TV Show and ALL its seasons/episodes and saves them locally.
   Future<void> addTvShow(int showId) async {
+    // 0. Fetch existing data to preserve user progress and status
+    final existingShow = await (_db.select(_db.tvShows)
+          ..where((tbl) => tbl.id.equals(showId)))
+        .getSingleOrNull();
+
+    final existingWatchedEpisodes = await (_db.select(_db.episodes)
+          ..where((tbl) => tbl.showId.equals(showId))
+          ..where((tbl) => tbl.isWatched.equals(true)))
+        .get();
+    final watchedEpisodeIds = existingWatchedEpisodes.map((e) => e.id).toSet();
+
     // 1. Fetch main show details
     final details = await _tmdb.getShowDetails(showId);
 
@@ -57,21 +68,18 @@ class LibraryRepository {
       castStr = jsonEncode(topCast);
     }
 
-    // 2. Prepare the Show object
+    // 2. Prepare the Show object, preserving status and addedAt if it exists
     final show = TvShowsCompanion.insert(
       id: Value(showId),
       title: details['name'] ?? 'Unknown',
       posterPath: Value(details['poster_path']),
       overview: details['overview'] ?? '',
-      status: const Value('planning'),
+      status: existingShow != null ? Value(existingShow.status) : const Value('planning'),
       nextEpisodeAirDate: Value(nextAirDate),
-      addedAt: Value(DateTime.now()),
+      addedAt: existingShow != null ? Value(existingShow.addedAt) : Value(DateTime.now()),
       genres: Value(genresStr),
       castList: Value(castStr),
     );
-
-    // We removed the immediate save here to prevent partial states (0 episodes shown in UI)
-    // await _db.into(_db.tvShows).insert(show, mode: InsertMode.insertOrReplace);
 
     // 3. Fetch and prepare Seasons & Episodes
     final seasonsList = details['seasons'] as List<dynamic>? ?? [];
@@ -105,7 +113,7 @@ class LibraryRepository {
             episodeNumber: e['episode_number'],
             title: e['name'] ?? 'Episode ${e['episode_number']}',
             airDate: Value(DateTime.tryParse(e['air_date'] ?? '')),
-            isWatched: const Value(false),
+            isWatched: Value(watchedEpisodeIds.contains(e['id'])),
           ),
         );
       }
@@ -183,6 +191,13 @@ class LibraryRepository {
         _db.tvShows,
       )..where((tbl) => tbl.id.equals(showId))).go();
     });
+  }
+
+  /// Updates the status of a TV show
+  Future<void> updateTvShowStatus(int showId, String status) async {
+    await (_db.update(_db.tvShows)..where((tbl) => tbl.id.equals(showId))).write(
+      TvShowsCompanion(status: Value(status)),
+    );
   }
 
   /// Deletes a Movie from the database

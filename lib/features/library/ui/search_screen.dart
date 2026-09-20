@@ -123,10 +123,28 @@ class SearchScreen extends ConsumerWidget {
                       ),
                     )
                   : searchState.results.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Type a name and hit enter to search.',
-                        style: TextStyle(color: Colors.white30),
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Type a name and hit enter to search.',
+                            style: TextStyle(color: Colors.white30),
+                          ),
+                          const SizedBox(height: 32),
+                          const Text(
+                            'Powered by',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Image.asset('assets/TMDB.png', height: 28),
+                        ],
                       ),
                     )
                   : ListView.separated(

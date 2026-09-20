@@ -101,6 +101,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
           const SizedBox(height: 24),
 
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.5)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.blue, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Highly Recommended',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Please run a manual backup (either local or cloud) before uninstalling the app to keep your data safe and updated.',
+                        style: TextStyle(
+                          color: Colors.lightBlueAccent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // --- LOCAL BACKUP SECTION ---
           const Text(
             'Local Backup',
@@ -230,8 +270,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Your data is automatically synced to a hidden folder in your Google Drive every 24 hours. You can also force a sync manually below.',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            'When you open the app, we automatically sync your library to a hidden Google Drive folder once a day. Need to force a backup right now? Just hit the manual sync below.',
+            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 16),
           Container(
@@ -285,9 +325,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 color: Colors.white,
               ),
               title: const Text('Enable Automatic Cloud Backup'),
-              subtitle: const Text(
-                'Sync data to Drive every 24 hours',
-                style: TextStyle(fontSize: 12),
+              subtitle: const Padding(
+                padding: EdgeInsets.only(top: 4.0),
+                child: Text(
+                  'Auto-sync once a day',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
               ),
               activeColor: Theme.of(context).primaryColor,
               value: isAutoBackupEnabled,

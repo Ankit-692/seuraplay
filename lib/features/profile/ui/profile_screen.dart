@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../providers/profile_providers.dart';
 import 'completed_movies_screen.dart';
 import 'completed_shows_screen.dart';
+import 'dropped_shows_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -393,6 +394,15 @@ class ProfileScreen extends ConsumerWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CompletedShowsScreen()),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _NavigationTile(
+          title: 'Dropped Shows',
+          icon: Icons.archive_outlined,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const DroppedShowsScreen()),
           ),
         ),
       ],

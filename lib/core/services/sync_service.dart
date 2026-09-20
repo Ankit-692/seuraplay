@@ -41,27 +41,75 @@ class SyncService {
       // Loop through and update them to fetch new seasons/episodes
       for (var show in watchingShows) {
         print('Updating TMDB data for: ${show.title}');
-        await libraryRepo.addTvShow(show.id);
+        try {
+          await libraryRepo.addTvShow(show.id);
+        } catch (e) {
+          print('TMDB Update failed for ${show.title}: $e');
+          // We continue to the next show instead of failing the whole sync
+        }
       }
+    } catch (e) {
+      print('Failed to fetch watching shows for TMDB update: $e');
+    }
 
+    try {
       // 3. Google Drive Backup
       final prefs = await SharedPreferences.getInstance();
-      final isAutoBackupEnabled = prefs.getBool('is_auto_backup_enabled') ?? false;
+      final isAutoBackupEnabled =
+          prefs.getBool('is_auto_backup_enabled') ?? false;
 
       if (isAutoBackupEnabled) {
         print('Starting Google Drive backup...');
         final driveService = DriveBackupService();
-        await driveService.backupDatabaseToDrive();
+        await driveService.backupDatabaseToDrive(isSilent: true);
       } else {
         print('Skipping Google Drive backup (auto-backup disabled).');
       }
 
       print('Daily sync completed successfully!');
     } catch (e) {
-      print('Daily sync failed: $e');
+      print('Daily sync backup failed: $e');
     } finally {
       // Close the DB connection so the background isolate doesn't hold it hostage
       await db.close();
+    }
+  }
+
+  /// Checks if auto-backup is enabled and if 24 hours have passed since the last backup.
+  /// If so, runs performDailySync in the background.
+  static Future<void> checkAndRunAutoSync() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isAutoBackupEnabled =
+          prefs.getBool('is_auto_backup_enabled') ?? false;
+
+      if (!isAutoBackupEnabled) return;
+
+      final lastSyncString = prefs.getString('last_auto_backup_time');
+      if (lastSyncString != null) {
+        final lastSyncTime = DateTime.tryParse(lastSyncString);
+        if (lastSyncTime != null) {
+          final difference = DateTime.now().difference(lastSyncTime);
+          if (difference.inHours < 0) {
+            // Less than 24 hours have passed, skip sync
+            print(
+              'Auto-sync skipped: Last sync was ${difference.inHours} hours ago.',
+            );
+            return;
+          }
+        }
+      }
+
+      print('Triggering on-launch auto-sync...');
+      await performDailySync();
+
+      // Update the last sync time
+      await prefs.setString(
+        'last_auto_backup_time',
+        DateTime.now().toIso8601String(),
+      );
+    } catch (e) {
+      print('Auto-sync check failed: $e');
     }
   }
 }

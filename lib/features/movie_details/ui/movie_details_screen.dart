@@ -32,6 +32,7 @@ class MovieDetailsScreen extends ConsumerWidget {
               : null;
 
           final isWatched = movie.status == 'watched';
+          final isUnreleased = movie.releaseDate != null && movie.releaseDate!.isAfter(DateTime.now());
 
           List<dynamic> castList = [];
           if (movie.castList != null && movie.castList!.isNotEmpty) {
@@ -176,9 +177,11 @@ class MovieDetailsScreen extends ConsumerWidget {
                                   children: [
                                     Text(
                                       movie.title,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
+                                        fontStyle: (isUnreleased && !isWatched) ? FontStyle.italic : FontStyle.normal,
+                                        color: (isUnreleased && !isWatched) ? Colors.white54 : Colors.white,
                                         height: 1.2,
                                       ),
                                     ),
@@ -196,7 +199,7 @@ class MovieDetailsScreen extends ConsumerWidget {
                                     ],
                                     if (movie.releaseDate != null)
                                       Text(
-                                        'Released: ${movie.releaseDate!.toLocal().toString().split(' ')[0]}',
+                                        '${isUnreleased ? 'Releasing' : 'Released'}: ${movie.releaseDate!.toLocal().toString().split(' ')[0]}',
                                         style: const TextStyle(
                                           color: Colors.white70,
                                           fontSize: 12,
@@ -207,21 +210,21 @@ class MovieDetailsScreen extends ConsumerWidget {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isWatched
                                             ? Theme.of(context).cardColor
-                                            : Theme.of(context).primaryColor,
+                                            : (isUnreleased ? Colors.white12 : Theme.of(context).primaryColor),
                                         foregroundColor: isWatched
                                             ? Theme.of(context).primaryColor
-                                            : Colors.black,
+                                            : (isUnreleased ? Colors.white54 : Colors.black),
                                         elevation: 0,
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                           side: BorderSide(
-                                            color: Theme.of(context).primaryColor.withOpacity(0.5),
+                                            color: isUnreleased ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.5),
                                           ),
                                         ),
                                       ),
                                       icon: Icon(
-                                        isWatched ? Icons.check_circle : Icons.visibility,
+                                        isWatched ? Icons.check_circle : (isUnreleased ? Icons.schedule : Icons.visibility),
                                         size: 18,
                                       ),
                                       label: Text(
@@ -232,9 +235,21 @@ class MovieDetailsScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       onPressed: () {
+                                        if (isUnreleased && !isWatched) {
+                                          AppToasts.showInfo(context, 'This movie hasn\'t been released yet. Long press to mark as watched.');
+                                          return;
+                                        }
                                         ref
                                             .read(movieControllerProvider)
                                             .toggleStatus(movie.id, movie.status);
+                                      },
+                                      onLongPress: () {
+                                        if (isUnreleased && !isWatched) {
+                                          ref
+                                              .read(movieControllerProvider)
+                                              .toggleStatus(movie.id, movie.status);
+                                          AppToasts.showSuccess(context, 'Marked unreleased movie as watched.');
+                                        }
                                       },
                                     ),
                                   ],

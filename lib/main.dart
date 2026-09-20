@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:seuraplay/core/services/background_worker.dart';
+import 'package:seuraplay/core/services/sync_service.dart';
 import 'package:seuraplay/features/intro/ui/intro_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/main_screen.dart';
@@ -10,11 +10,8 @@ void main() async {
   // Ensure bindings are initialized before calling async code
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize the background worker
-  await BackgroundWorker.initialize();
-
-  // Register the daily sync
-  BackgroundWorker.scheduleDailySync();
+  // Fire and forget auto-sync check
+  SyncService.checkAndRunAutoSync();
 
   // Check if first launch
   final prefs = await SharedPreferences.getInstance();
