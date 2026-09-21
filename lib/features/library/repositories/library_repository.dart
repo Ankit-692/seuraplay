@@ -20,7 +20,7 @@ class LibraryRepository {
   LibraryRepository(this._db, this._tmdb);
 
   /// Fetches a TV Show and ALL its seasons/episodes and saves them locally.
-  Future<void> addTvShow(int showId) async {
+  Future<void> addTvShow(int showId, {Map<String, dynamic>? preFetchedDetails}) async {
     // 0. Fetch existing data to preserve user progress and status
     final existingShow = await (_db.select(_db.tvShows)
           ..where((tbl) => tbl.id.equals(showId)))
@@ -32,8 +32,8 @@ class LibraryRepository {
         .get();
     final watchedEpisodeIds = existingWatchedEpisodes.map((e) => e.id).toSet();
 
-    // 1. Fetch main show details
-    final details = await _tmdb.getShowDetails(showId);
+    // 1. Fetch main show details if not already provided
+    final details = preFetchedDetails ?? await _tmdb.getShowDetails(showId);
 
     // Parse the next episode date if it exists (crucial for your Upcoming tab)
     DateTime? nextAirDate;
@@ -68,6 +68,14 @@ class LibraryRepository {
       castStr = jsonEncode(topCast);
     }
 
+    // Parse trailer
+    final videos = details['videos']?['results'] as List<dynamic>? ?? [];
+    final trailer = videos.firstWhere(
+      (v) => (v['type'] == 'Trailer' || v['type'] == 'Teaser') && v['site'] == 'YouTube',
+      orElse: () => null,
+    );
+    final trailerKey = trailer?['key'];
+
     // 2. Prepare the Show object, preserving status and addedAt if it exists
     final show = TvShowsCompanion.insert(
       id: Value(showId),
@@ -79,6 +87,7 @@ class LibraryRepository {
       addedAt: existingShow != null ? Value(existingShow.addedAt) : Value(DateTime.now()),
       genres: Value(genresStr),
       castList: Value(castStr),
+      trailerKey: Value(trailerKey),
     );
 
     // 3. Fetch and prepare Seasons & Episodes
@@ -100,6 +109,18 @@ class LibraryRepository {
           airDate: Value(DateTime.tryParse(s['air_date'] ?? '')),
         ),
       );
+
+      // Check if we can skip fetching episodes to save API calls
+      final int tmdbEpisodeCount = s['episode_count'] ?? 0;
+      
+      final existingEpisodesCount = await (_db.select(_db.episodes)
+            ..where((tbl) => tbl.seasonId.equals(seasonId)))
+          .get()
+          .then((l) => l.length);
+          
+      if (existingEpisodesCount == tmdbEpisodeCount && tmdbEpisodeCount > 0) {
+        return; // Skip duplicate/useless API call for episodes we already have
+      }
 
       // Fetch episodes for this specific season
       final epList = await _tmdb.getSeasonEpisodes(showId, seasonNum);
@@ -130,8 +151,8 @@ class LibraryRepository {
   }
 
   /// Fetches Movie details and saves it locally.
-  Future<void> addMovie(int movieId) async {
-    final details = await _tmdb.getMovieDetails(movieId);
+  Future<void> addMovie(int movieId, {Map<String, dynamic>? preFetchedDetails}) async {
+    final details = preFetchedDetails ?? await _tmdb.getMovieDetails(movieId);
 
     // Parse genres
     final List<dynamic>? genresList = details['genres'];
@@ -158,6 +179,14 @@ class LibraryRepository {
       castStr = jsonEncode(topCast);
     }
 
+    // Parse trailer
+    final videos = details['videos']?['results'] as List<dynamic>? ?? [];
+    final trailer = videos.firstWhere(
+      (v) => (v['type'] == 'Trailer' || v['type'] == 'Teaser') && v['site'] == 'YouTube',
+      orElse: () => null,
+    );
+    final trailerKey = trailer?['key'];
+
     final movie = MoviesCompanion.insert(
       id: Value(movieId),
       title: details['title'] ?? 'Unknown Title',
@@ -168,6 +197,7 @@ class LibraryRepository {
       addedAt: Value(DateTime.now()),
       genres: Value(genresStr),
       castList: Value(castStr),
+      trailerKey: Value(trailerKey),
     );
 
     await _db.into(_db.movies).insert(movie, mode: InsertMode.insertOrReplace);

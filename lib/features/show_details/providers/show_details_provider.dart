@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
 import '../../../core/database/database_provider.dart';
 
+
 /// Streams the show metadata for a specific ID
 final showMetadataProvider = StreamProvider.family<TvShow?, int>((ref, showId) {
   final db = ref.watch(databaseProvider);
@@ -79,6 +80,16 @@ class EpisodeController {
     final season = await (_db.select(_db.seasons)..where((tbl) => tbl.id.equals(seasonId))).getSingle();
     await _updateShowStatus(season.showId);
   }
+
+  Future<void> markShowWatched(int showId, bool isWatched) async {
+    await (_db.update(_db.episodes)..where((tbl) => tbl.showId.equals(showId))).write(
+      EpisodesCompanion(
+        isWatched: Value(isWatched),
+        watchedAt: Value(isWatched ? DateTime.now() : null),
+      ),
+    );
+    await _updateShowStatus(showId);
+  }
   
   Future<void> _updateShowStatus(int showId) async {
     final query = _db.select(_db.episodes).join([
@@ -103,3 +114,10 @@ class EpisodeController {
     );
   }
 }
+
+final showTrailersProvider = StreamProvider.family<String?, int>((ref, showId) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.tvShows)..where((tbl) => tbl.id.equals(showId)))
+      .watchSingleOrNull()
+      .map((show) => show?.trailerKey);
+});

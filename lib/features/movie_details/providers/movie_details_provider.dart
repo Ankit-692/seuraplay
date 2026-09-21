@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/database.dart';
 import '../../../../core/database/database_provider.dart';
 
+
 /// Streams the movie metadata for a specific ID directly from Drift
 final movieMetadataProvider = StreamProvider.family<Movie?, int>((
   ref,
@@ -31,3 +32,10 @@ class MovieController {
         .write(MoviesCompanion(status: Value(newStatus)));
   }
 }
+
+final movieTrailersProvider = StreamProvider.family<String?, int>((ref, movieId) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.movies)..where((tbl) => tbl.id.equals(movieId)))
+      .watchSingleOrNull()
+      .map((movie) => movie?.trailerKey);
+});

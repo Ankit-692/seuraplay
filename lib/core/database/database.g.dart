@@ -101,6 +101,17 @@ class $MoviesTable extends Movies with TableInfo<$MoviesTable, Movie> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _trailerKeyMeta = const VerificationMeta(
+    'trailerKey',
+  );
+  @override
+  late final GeneratedColumn<String> trailerKey = GeneratedColumn<String>(
+    'trailer_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -112,6 +123,7 @@ class $MoviesTable extends Movies with TableInfo<$MoviesTable, Movie> {
     addedAt,
     genres,
     castList,
+    trailerKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -183,6 +195,12 @@ class $MoviesTable extends Movies with TableInfo<$MoviesTable, Movie> {
         castList.isAcceptableOrUnknown(data['cast_list']!, _castListMeta),
       );
     }
+    if (data.containsKey('trailer_key')) {
+      context.handle(
+        _trailerKeyMeta,
+        trailerKey.isAcceptableOrUnknown(data['trailer_key']!, _trailerKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -228,6 +246,10 @@ class $MoviesTable extends Movies with TableInfo<$MoviesTable, Movie> {
         DriftSqlType.string,
         data['${effectivePrefix}cast_list'],
       ),
+      trailerKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trailer_key'],
+      ),
     );
   }
 
@@ -247,6 +269,7 @@ class Movie extends DataClass implements Insertable<Movie> {
   final DateTime addedAt;
   final String? genres;
   final String? castList;
+  final String? trailerKey;
   const Movie({
     required this.id,
     required this.title,
@@ -257,6 +280,7 @@ class Movie extends DataClass implements Insertable<Movie> {
     required this.addedAt,
     this.genres,
     this.castList,
+    this.trailerKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -277,6 +301,9 @@ class Movie extends DataClass implements Insertable<Movie> {
     }
     if (!nullToAbsent || castList != null) {
       map['cast_list'] = Variable<String>(castList);
+    }
+    if (!nullToAbsent || trailerKey != null) {
+      map['trailer_key'] = Variable<String>(trailerKey);
     }
     return map;
   }
@@ -300,6 +327,9 @@ class Movie extends DataClass implements Insertable<Movie> {
       castList: castList == null && nullToAbsent
           ? const Value.absent()
           : Value(castList),
+      trailerKey: trailerKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trailerKey),
     );
   }
 
@@ -318,6 +348,7 @@ class Movie extends DataClass implements Insertable<Movie> {
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       genres: serializer.fromJson<String?>(json['genres']),
       castList: serializer.fromJson<String?>(json['castList']),
+      trailerKey: serializer.fromJson<String?>(json['trailerKey']),
     );
   }
   @override
@@ -333,6 +364,7 @@ class Movie extends DataClass implements Insertable<Movie> {
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'genres': serializer.toJson<String?>(genres),
       'castList': serializer.toJson<String?>(castList),
+      'trailerKey': serializer.toJson<String?>(trailerKey),
     };
   }
 
@@ -346,6 +378,7 @@ class Movie extends DataClass implements Insertable<Movie> {
     DateTime? addedAt,
     Value<String?> genres = const Value.absent(),
     Value<String?> castList = const Value.absent(),
+    Value<String?> trailerKey = const Value.absent(),
   }) => Movie(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -356,6 +389,7 @@ class Movie extends DataClass implements Insertable<Movie> {
     addedAt: addedAt ?? this.addedAt,
     genres: genres.present ? genres.value : this.genres,
     castList: castList.present ? castList.value : this.castList,
+    trailerKey: trailerKey.present ? trailerKey.value : this.trailerKey,
   );
   Movie copyWithCompanion(MoviesCompanion data) {
     return Movie(
@@ -372,6 +406,9 @@ class Movie extends DataClass implements Insertable<Movie> {
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       genres: data.genres.present ? data.genres.value : this.genres,
       castList: data.castList.present ? data.castList.value : this.castList,
+      trailerKey: data.trailerKey.present
+          ? data.trailerKey.value
+          : this.trailerKey,
     );
   }
 
@@ -386,7 +423,8 @@ class Movie extends DataClass implements Insertable<Movie> {
           ..write('status: $status, ')
           ..write('addedAt: $addedAt, ')
           ..write('genres: $genres, ')
-          ..write('castList: $castList')
+          ..write('castList: $castList, ')
+          ..write('trailerKey: $trailerKey')
           ..write(')'))
         .toString();
   }
@@ -402,6 +440,7 @@ class Movie extends DataClass implements Insertable<Movie> {
     addedAt,
     genres,
     castList,
+    trailerKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -415,7 +454,8 @@ class Movie extends DataClass implements Insertable<Movie> {
           other.status == this.status &&
           other.addedAt == this.addedAt &&
           other.genres == this.genres &&
-          other.castList == this.castList);
+          other.castList == this.castList &&
+          other.trailerKey == this.trailerKey);
 }
 
 class MoviesCompanion extends UpdateCompanion<Movie> {
@@ -428,6 +468,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
   final Value<DateTime> addedAt;
   final Value<String?> genres;
   final Value<String?> castList;
+  final Value<String?> trailerKey;
   const MoviesCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -438,6 +479,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
     this.addedAt = const Value.absent(),
     this.genres = const Value.absent(),
     this.castList = const Value.absent(),
+    this.trailerKey = const Value.absent(),
   });
   MoviesCompanion.insert({
     this.id = const Value.absent(),
@@ -449,6 +491,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
     this.addedAt = const Value.absent(),
     this.genres = const Value.absent(),
     this.castList = const Value.absent(),
+    this.trailerKey = const Value.absent(),
   }) : title = Value(title),
        overview = Value(overview);
   static Insertable<Movie> custom({
@@ -461,6 +504,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
     Expression<DateTime>? addedAt,
     Expression<String>? genres,
     Expression<String>? castList,
+    Expression<String>? trailerKey,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -472,6 +516,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
       if (addedAt != null) 'added_at': addedAt,
       if (genres != null) 'genres': genres,
       if (castList != null) 'cast_list': castList,
+      if (trailerKey != null) 'trailer_key': trailerKey,
     });
   }
 
@@ -485,6 +530,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
     Value<DateTime>? addedAt,
     Value<String?>? genres,
     Value<String?>? castList,
+    Value<String?>? trailerKey,
   }) {
     return MoviesCompanion(
       id: id ?? this.id,
@@ -496,6 +542,7 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
       addedAt: addedAt ?? this.addedAt,
       genres: genres ?? this.genres,
       castList: castList ?? this.castList,
+      trailerKey: trailerKey ?? this.trailerKey,
     );
   }
 
@@ -529,6 +576,9 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
     if (castList.present) {
       map['cast_list'] = Variable<String>(castList.value);
     }
+    if (trailerKey.present) {
+      map['trailer_key'] = Variable<String>(trailerKey.value);
+    }
     return map;
   }
 
@@ -543,7 +593,8 @@ class MoviesCompanion extends UpdateCompanion<Movie> {
           ..write('status: $status, ')
           ..write('addedAt: $addedAt, ')
           ..write('genres: $genres, ')
-          ..write('castList: $castList')
+          ..write('castList: $castList, ')
+          ..write('trailerKey: $trailerKey')
           ..write(')'))
         .toString();
   }
@@ -647,6 +698,17 @@ class $TvShowsTable extends TvShows with TableInfo<$TvShowsTable, TvShow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _trailerKeyMeta = const VerificationMeta(
+    'trailerKey',
+  );
+  @override
+  late final GeneratedColumn<String> trailerKey = GeneratedColumn<String>(
+    'trailer_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -658,6 +720,7 @@ class $TvShowsTable extends TvShows with TableInfo<$TvShowsTable, TvShow> {
     addedAt,
     genres,
     castList,
+    trailerKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -729,6 +792,12 @@ class $TvShowsTable extends TvShows with TableInfo<$TvShowsTable, TvShow> {
         castList.isAcceptableOrUnknown(data['cast_list']!, _castListMeta),
       );
     }
+    if (data.containsKey('trailer_key')) {
+      context.handle(
+        _trailerKeyMeta,
+        trailerKey.isAcceptableOrUnknown(data['trailer_key']!, _trailerKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -774,6 +843,10 @@ class $TvShowsTable extends TvShows with TableInfo<$TvShowsTable, TvShow> {
         DriftSqlType.string,
         data['${effectivePrefix}cast_list'],
       ),
+      trailerKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trailer_key'],
+      ),
     );
   }
 
@@ -793,6 +866,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
   final DateTime addedAt;
   final String? genres;
   final String? castList;
+  final String? trailerKey;
   const TvShow({
     required this.id,
     required this.title,
@@ -803,6 +877,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
     required this.addedAt,
     this.genres,
     this.castList,
+    this.trailerKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -823,6 +898,9 @@ class TvShow extends DataClass implements Insertable<TvShow> {
     }
     if (!nullToAbsent || castList != null) {
       map['cast_list'] = Variable<String>(castList);
+    }
+    if (!nullToAbsent || trailerKey != null) {
+      map['trailer_key'] = Variable<String>(trailerKey);
     }
     return map;
   }
@@ -846,6 +924,9 @@ class TvShow extends DataClass implements Insertable<TvShow> {
       castList: castList == null && nullToAbsent
           ? const Value.absent()
           : Value(castList),
+      trailerKey: trailerKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trailerKey),
     );
   }
 
@@ -866,6 +947,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       genres: serializer.fromJson<String?>(json['genres']),
       castList: serializer.fromJson<String?>(json['castList']),
+      trailerKey: serializer.fromJson<String?>(json['trailerKey']),
     );
   }
   @override
@@ -881,6 +963,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'genres': serializer.toJson<String?>(genres),
       'castList': serializer.toJson<String?>(castList),
+      'trailerKey': serializer.toJson<String?>(trailerKey),
     };
   }
 
@@ -894,6 +977,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
     DateTime? addedAt,
     Value<String?> genres = const Value.absent(),
     Value<String?> castList = const Value.absent(),
+    Value<String?> trailerKey = const Value.absent(),
   }) => TvShow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -906,6 +990,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
     addedAt: addedAt ?? this.addedAt,
     genres: genres.present ? genres.value : this.genres,
     castList: castList.present ? castList.value : this.castList,
+    trailerKey: trailerKey.present ? trailerKey.value : this.trailerKey,
   );
   TvShow copyWithCompanion(TvShowsCompanion data) {
     return TvShow(
@@ -922,6 +1007,9 @@ class TvShow extends DataClass implements Insertable<TvShow> {
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       genres: data.genres.present ? data.genres.value : this.genres,
       castList: data.castList.present ? data.castList.value : this.castList,
+      trailerKey: data.trailerKey.present
+          ? data.trailerKey.value
+          : this.trailerKey,
     );
   }
 
@@ -936,7 +1024,8 @@ class TvShow extends DataClass implements Insertable<TvShow> {
           ..write('nextEpisodeAirDate: $nextEpisodeAirDate, ')
           ..write('addedAt: $addedAt, ')
           ..write('genres: $genres, ')
-          ..write('castList: $castList')
+          ..write('castList: $castList, ')
+          ..write('trailerKey: $trailerKey')
           ..write(')'))
         .toString();
   }
@@ -952,6 +1041,7 @@ class TvShow extends DataClass implements Insertable<TvShow> {
     addedAt,
     genres,
     castList,
+    trailerKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -965,7 +1055,8 @@ class TvShow extends DataClass implements Insertable<TvShow> {
           other.nextEpisodeAirDate == this.nextEpisodeAirDate &&
           other.addedAt == this.addedAt &&
           other.genres == this.genres &&
-          other.castList == this.castList);
+          other.castList == this.castList &&
+          other.trailerKey == this.trailerKey);
 }
 
 class TvShowsCompanion extends UpdateCompanion<TvShow> {
@@ -978,6 +1069,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
   final Value<DateTime> addedAt;
   final Value<String?> genres;
   final Value<String?> castList;
+  final Value<String?> trailerKey;
   const TvShowsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -988,6 +1080,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
     this.addedAt = const Value.absent(),
     this.genres = const Value.absent(),
     this.castList = const Value.absent(),
+    this.trailerKey = const Value.absent(),
   });
   TvShowsCompanion.insert({
     this.id = const Value.absent(),
@@ -999,6 +1092,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
     this.addedAt = const Value.absent(),
     this.genres = const Value.absent(),
     this.castList = const Value.absent(),
+    this.trailerKey = const Value.absent(),
   }) : title = Value(title),
        overview = Value(overview);
   static Insertable<TvShow> custom({
@@ -1011,6 +1105,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
     Expression<DateTime>? addedAt,
     Expression<String>? genres,
     Expression<String>? castList,
+    Expression<String>? trailerKey,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1023,6 +1118,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
       if (addedAt != null) 'added_at': addedAt,
       if (genres != null) 'genres': genres,
       if (castList != null) 'cast_list': castList,
+      if (trailerKey != null) 'trailer_key': trailerKey,
     });
   }
 
@@ -1036,6 +1132,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
     Value<DateTime>? addedAt,
     Value<String?>? genres,
     Value<String?>? castList,
+    Value<String?>? trailerKey,
   }) {
     return TvShowsCompanion(
       id: id ?? this.id,
@@ -1047,6 +1144,7 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
       addedAt: addedAt ?? this.addedAt,
       genres: genres ?? this.genres,
       castList: castList ?? this.castList,
+      trailerKey: trailerKey ?? this.trailerKey,
     );
   }
 
@@ -1082,6 +1180,9 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
     if (castList.present) {
       map['cast_list'] = Variable<String>(castList.value);
     }
+    if (trailerKey.present) {
+      map['trailer_key'] = Variable<String>(trailerKey.value);
+    }
     return map;
   }
 
@@ -1096,7 +1197,8 @@ class TvShowsCompanion extends UpdateCompanion<TvShow> {
           ..write('nextEpisodeAirDate: $nextEpisodeAirDate, ')
           ..write('addedAt: $addedAt, ')
           ..write('genres: $genres, ')
-          ..write('castList: $castList')
+          ..write('castList: $castList, ')
+          ..write('trailerKey: $trailerKey')
           ..write(')'))
         .toString();
   }
@@ -1991,6 +2093,7 @@ typedef $$MoviesTableCreateCompanionBuilder =
       Value<DateTime> addedAt,
       Value<String?> genres,
       Value<String?> castList,
+      Value<String?> trailerKey,
     });
 typedef $$MoviesTableUpdateCompanionBuilder =
     MoviesCompanion Function({
@@ -2003,6 +2106,7 @@ typedef $$MoviesTableUpdateCompanionBuilder =
       Value<DateTime> addedAt,
       Value<String?> genres,
       Value<String?> castList,
+      Value<String?> trailerKey,
     });
 
 class $$MoviesTableFilterComposer
@@ -2056,6 +2160,11 @@ class $$MoviesTableFilterComposer
 
   ColumnFilters<String> get castList => $composableBuilder(
     column: $table.castList,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2113,6 +2222,11 @@ class $$MoviesTableOrderingComposer
     column: $table.castList,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MoviesTableAnnotationComposer
@@ -2154,6 +2268,11 @@ class $$MoviesTableAnnotationComposer
 
   GeneratedColumn<String> get castList =>
       $composableBuilder(column: $table.castList, builder: (column) => column);
+
+  GeneratedColumn<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => column,
+  );
 }
 
 class $$MoviesTableTableManager
@@ -2193,6 +2312,7 @@ class $$MoviesTableTableManager
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
                 Value<String?> castList = const Value.absent(),
+                Value<String?> trailerKey = const Value.absent(),
               }) => MoviesCompanion(
                 id: id,
                 title: title,
@@ -2203,6 +2323,7 @@ class $$MoviesTableTableManager
                 addedAt: addedAt,
                 genres: genres,
                 castList: castList,
+                trailerKey: trailerKey,
               ),
           createCompanionCallback:
               ({
@@ -2215,6 +2336,7 @@ class $$MoviesTableTableManager
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
                 Value<String?> castList = const Value.absent(),
+                Value<String?> trailerKey = const Value.absent(),
               }) => MoviesCompanion.insert(
                 id: id,
                 title: title,
@@ -2225,6 +2347,7 @@ class $$MoviesTableTableManager
                 addedAt: addedAt,
                 genres: genres,
                 castList: castList,
+                trailerKey: trailerKey,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2268,6 +2391,7 @@ typedef $$TvShowsTableCreateCompanionBuilder =
       Value<DateTime> addedAt,
       Value<String?> genres,
       Value<String?> castList,
+      Value<String?> trailerKey,
     });
 typedef $$TvShowsTableUpdateCompanionBuilder =
     TvShowsCompanion Function({
@@ -2280,6 +2404,7 @@ typedef $$TvShowsTableUpdateCompanionBuilder =
       Value<DateTime> addedAt,
       Value<String?> genres,
       Value<String?> castList,
+      Value<String?> trailerKey,
     });
 
 final class $$TvShowsTableReferences
@@ -2376,6 +2501,11 @@ class $$TvShowsTableFilterComposer
 
   ColumnFilters<String> get castList => $composableBuilder(
     column: $table.castList,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2483,6 +2613,11 @@ class $$TvShowsTableOrderingComposer
     column: $table.castList,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TvShowsTableAnnotationComposer
@@ -2524,6 +2659,11 @@ class $$TvShowsTableAnnotationComposer
 
   GeneratedColumn<String> get castList =>
       $composableBuilder(column: $table.castList, builder: (column) => column);
+
+  GeneratedColumn<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => column,
+  );
 
   Expression<T> seasonsRefs<T extends Object>(
     Expression<T> Function($$SeasonsTableAnnotationComposer a) f,
@@ -2613,6 +2753,7 @@ class $$TvShowsTableTableManager
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
                 Value<String?> castList = const Value.absent(),
+                Value<String?> trailerKey = const Value.absent(),
               }) => TvShowsCompanion(
                 id: id,
                 title: title,
@@ -2623,6 +2764,7 @@ class $$TvShowsTableTableManager
                 addedAt: addedAt,
                 genres: genres,
                 castList: castList,
+                trailerKey: trailerKey,
               ),
           createCompanionCallback:
               ({
@@ -2635,6 +2777,7 @@ class $$TvShowsTableTableManager
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
                 Value<String?> castList = const Value.absent(),
+                Value<String?> trailerKey = const Value.absent(),
               }) => TvShowsCompanion.insert(
                 id: id,
                 title: title,
@@ -2645,6 +2788,7 @@ class $$TvShowsTableTableManager
                 addedAt: addedAt,
                 genres: genres,
                 castList: castList,
+                trailerKey: trailerKey,
               ),
           withReferenceMapper: (p0) => p0
               .map(

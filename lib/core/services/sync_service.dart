@@ -1,4 +1,3 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
@@ -6,6 +5,7 @@ import '../database/database.dart';
 import '../network/tmdb_repository.dart';
 import '../../features/library/repositories/library_repository.dart';
 import 'drive_backup_service.dart';
+import '../config/api_keys.dart';
 
 class SyncService {
   /// This function runs the entire update process.
@@ -15,16 +15,13 @@ class SyncService {
 
     // 1. Manually initialize dependencies for the background isolate
     final db = AppDatabase();
-    const secureStorage = FlutterSecureStorage();
 
     // NOTE: Update this URL if you are using the Cloudflare proxy!
-    final userTmdbToken =
-        await secureStorage.read(key: 'user_tmdb_token') ?? '';
     final dio = Dio(
       BaseOptions(
         baseUrl: 'https://api.tmdb.org/3',
         headers: {
-          'Authorization': 'Bearer $userTmdbToken',
+          'Authorization': 'Bearer $tmdbApiKey',
           'accept': 'application/json',
         },
       ),

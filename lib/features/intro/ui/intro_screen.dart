@@ -1,10 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:seuraplay/features/home/main_screen.dart';
 
-class IntroScreen extends StatelessWidget {
+class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
+
+  @override
+  State<IntroScreen> createState() => _IntroScreenState();
+}
+
+class _IntroScreenState extends State<IntroScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _hasScrolledToEnd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    
+    // Check if the content is already fully visible on first render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent <= 0) {
+        setState(() {
+          _hasScrolledToEnd = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hasScrolledToEnd && _scrollController.hasClients) {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 20) {
+        setState(() {
+          _hasScrolledToEnd = true;
+        });
+      }
+    }
+  }
 
   Future<void> _completeIntro(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,7 +78,7 @@ class IntroScreen extends StatelessWidget {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
+                    color: primaryColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -69,7 +110,7 @@ class IntroScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 48),
@@ -77,15 +118,14 @@ class IntroScreen extends StatelessWidget {
               // Information Cards
               Expanded(
                 child: ListView(
+                  controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _InfoCard(
                       icon: Icons.movie_filter_rounded,
                       title: 'Powered by TMDB',
-                      description: 'To fetch all the latest movie and TV show data, Seuraplay uses the TMDB database. Just create a free account to get your personal API Read Access Token (the much longer "v4 auth" one) and paste it in the Settings page!',
+                      description: 'Seuraplay uses the TMDB database to fetch all the latest movie and TV show data automatically.',
                       iconColor: Colors.blueAccent,
-                      linkText: 'Create a free TMDB account',
-                      onLinkTap: () => launchUrl(Uri.parse('https://www.themoviedb.org/signup')),
                     ),
                     const SizedBox(height: 16),
                     _InfoCard(
@@ -108,10 +148,10 @@ class IntroScreen extends StatelessWidget {
               // Get Started Button
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => _completeIntro(context),
+                onPressed: _hasScrolledToEnd ? () => _completeIntro(context) : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: _hasScrolledToEnd ? primaryColor : Colors.grey.withValues(alpha: 0.3),
+                  foregroundColor: _hasScrolledToEnd ? Colors.white : Colors.white54,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -140,16 +180,12 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final String description;
   final Color iconColor;
-  final String? linkText;
-  final VoidCallback? onLinkTap;
 
   const _InfoCard({
     required this.icon,
     required this.title,
     required this.description,
     required this.iconColor,
-    this.linkText,
-    this.onLinkTap,
   });
 
   @override
@@ -157,10 +193,10 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1.0,
         ),
       ),
@@ -170,7 +206,7 @@ class _InfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.2),
+              color: iconColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -198,28 +234,9 @@ class _InfoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.4,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
-                if (linkText != null && onLinkTap != null) ...[
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: onLinkTap,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Text(
-                        linkText!,
-                        style: TextStyle(
-                          color: iconColor,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                          decorationColor: iconColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

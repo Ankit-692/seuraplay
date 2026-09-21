@@ -1,17 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:seuraplay/features/library/repositories/library_repository.dart';
-import '../../settings/providers/settings_provider.dart';
+
 import '../providers/search_provider.dart';
 import '../providers/library_providers.dart';
-import '../../../core/utils/app_toasts.dart';
+import 'widgets/search_result_tile.dart';
 
-class SearchScreen extends ConsumerWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<String>(searchQueryProvider, (previous, next) {
+      if (next.isNotEmpty && next != _textController.text) {
+        _textController.text = next;
+        ref.read(searchProvider.notifier).search(next);
+      }
+    });
+
     final searchState = ref.watch(searchProvider);
     final searchController = ref.read(searchProvider.notifier);
 
@@ -21,11 +45,9 @@ class SearchScreen extends ConsumerWidget {
     final savedMovieIds =
         savedMoviesAsync.value?.map((m) => m.id).toSet() ?? {};
 
-    final tokenAsync = ref.watch(tmdbTokenProvider);
-    final hasToken = tokenAsync.value?.isNotEmpty == true;
-
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             // --- SEARCH BAR ---
@@ -43,6 +65,7 @@ class SearchScreen extends ConsumerWidget {
                   ),
                 ),
                 child: TextField(
+                  controller: _textController,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: InputDecoration(
                     hintText: 'Search for shows or movies...',
@@ -54,6 +77,25 @@ class SearchScreen extends ConsumerWidget {
                       Icons.search_rounded,
                       color: Colors.white30,
                       size: 20,
+                    ),
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _textController,
+                      builder: (context, value, child) {
+                        if (value.text.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return IconButton(
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            color: Colors.white54,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _textController.clear();
+                            searchController.search('');
+                          },
+                        );
+                      },
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -68,47 +110,7 @@ class SearchScreen extends ConsumerWidget {
 
             // --- SEARCH RESULTS ---
             Expanded(
-              child: tokenAsync.isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    )
-                  : !hasToken
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              size: 48,
-                              color: Colors.orangeAccent,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'API Token Required',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Please create a completely free TMDB account and paste the API Read Access Token in the Settings page to start searching.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey,
-                                height: 1.4,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : searchState.isLoading
+              child: searchState.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
                         color: Theme.of(context).primaryColor,
@@ -172,7 +174,7 @@ class SearchScreen extends ConsumerWidget {
                             ? 'https://image.tmdb.org/t/p/w200$posterPath'
                             : null;
 
-                        return _SearchResultTile(
+                        return SearchResultTile(
                           item: item,
                           isMovie: isMovie,
                           isAdded: isAdded,
@@ -185,193 +187,6 @@ class SearchScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SearchResultTile extends ConsumerStatefulWidget {
-  final dynamic item;
-  final bool isMovie;
-  final bool isAdded;
-  final String? title;
-  final dynamic year;
-  final String? imageUrl;
-
-  const _SearchResultTile({
-    required this.item,
-    required this.isMovie,
-    required this.isAdded,
-    required this.title,
-    required this.year,
-    required this.imageUrl,
-  });
-
-  @override
-  ConsumerState<_SearchResultTile> createState() => _SearchResultTileState();
-}
-
-class _SearchResultTileState extends ConsumerState<_SearchResultTile> {
-  bool _isAdding = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Sleek small thumbnail
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
-            child: Container(
-              width: 55,
-              height: 80,
-              color: Colors.white.withValues(alpha: 0.02),
-              child: widget.imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: widget.imageUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Icon(
-                        widget.isMovie ? Icons.movie_rounded : Icons.tv_rounded,
-                        color: Colors.white12,
-                        size: 24,
-                      ),
-                    )
-                  : Icon(
-                      widget.isMovie ? Icons.movie_rounded : Icons.tv_rounded,
-                      color: Colors.white12,
-                      size: 24,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // Text Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title ?? 'Unknown Title',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    letterSpacing: -0.2,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.isMovie ? "Movie" : "Show"} • ${widget.year != null && widget.year.toString().length >= 4 ? widget.year.toString().substring(0, 4) : "N/A"}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Compact Animated Button
-          const SizedBox(width: 12),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: widget.isAdded || _isAdding
-                  ? null
-                  : () async {
-                      setState(() {
-                        _isAdding = true;
-                      });
-
-                      final libraryRepo = ref.read(libraryRepositoryProvider);
-
-                      try {
-                        if (widget.isMovie) {
-                          await libraryRepo.addMovie(widget.item['id']);
-                        } else {
-                          await libraryRepo.addTvShow(widget.item['id']);
-                        }
-
-                        if (context.mounted) {
-                          AppToasts.showSuccess(
-                            context,
-                            '${widget.title} added!',
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          AppToasts.showError(context, 'Error: $e');
-                        }
-                      } finally {
-                        if (mounted) {
-                          setState(() {
-                            _isAdding = false;
-                          });
-                        }
-                      }
-                    },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: widget.isAdded
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.white.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: widget.isAdded
-                        ? Colors.green.withValues(alpha: 0.3)
-                        : Colors.transparent,
-                  ),
-                ),
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, animation) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    },
-                    child: _isAdding
-                        ? const SizedBox(
-                            key: ValueKey<int>(1),
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white70,
-                            ),
-                          )
-                        : Icon(
-                            widget.isAdded
-                                ? Icons.check_rounded
-                                : Icons.add_rounded,
-                            key: ValueKey<bool>(widget.isAdded),
-                            color: widget.isAdded
-                                ? Colors.green
-                                : Colors.white70,
-                            size: 18,
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
