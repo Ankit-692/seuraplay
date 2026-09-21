@@ -1,4 +1,3 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
@@ -16,7 +15,6 @@ class SyncService {
 
     // 1. Manually initialize dependencies for the background isolate
     final db = AppDatabase();
-    const secureStorage = FlutterSecureStorage();
 
     // NOTE: Update this URL if you are using the Cloudflare proxy!
     final dio = Dio(

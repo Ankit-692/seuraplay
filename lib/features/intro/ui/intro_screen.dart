@@ -180,16 +180,12 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final String description;
   final Color iconColor;
-  final String? linkText;
-  final VoidCallback? onLinkTap;
 
   const _InfoCard({
     required this.icon,
     required this.title,
     required this.description,
     required this.iconColor,
-    this.linkText,
-    this.onLinkTap,
   });
 
   @override
@@ -241,25 +237,6 @@ class _InfoCard extends StatelessWidget {
                     color: Colors.white.withOpacity(0.7),
                   ),
                 ),
-                if (linkText != null && onLinkTap != null) ...[
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: onLinkTap,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Text(
-                        linkText!,
-                        style: TextStyle(
-                          color: iconColor,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                          decorationColor: iconColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

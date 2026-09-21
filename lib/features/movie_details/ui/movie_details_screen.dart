@@ -3,8 +3,11 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/movie_details_provider.dart';
 import '../../library/repositories/library_repository.dart';
+import '../../library/providers/search_provider.dart';
+import '../../home/main_screen.dart';
 import '../../../core/utils/app_toasts.dart';
 class MovieDetailsScreen extends ConsumerWidget {
   final int movieId;
@@ -14,6 +17,7 @@ class MovieDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final movieAsync = ref.watch(movieMetadataProvider(movieId));
+    final trailerAsync = ref.watch(movieTrailersProvider(movieId));
 
     return Scaffold(
       body: movieAsync.when(
@@ -48,6 +52,9 @@ class MovieDetailsScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 320,
                 pinned: true,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
@@ -205,53 +212,6 @@ class MovieDetailsScreen extends ConsumerWidget {
                                           fontSize: 12,
                                         ),
                                       ),
-                                    const SizedBox(height: 12),
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isWatched
-                                            ? Theme.of(context).cardColor
-                                            : (isUnreleased ? Colors.white12 : Theme.of(context).primaryColor),
-                                        foregroundColor: isWatched
-                                            ? Theme.of(context).primaryColor
-                                            : (isUnreleased ? Colors.white54 : Colors.black),
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          side: BorderSide(
-                                            color: isUnreleased ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.5),
-                                          ),
-                                        ),
-                                      ),
-                                      icon: Icon(
-                                        isWatched ? Icons.check_circle : (isUnreleased ? Icons.schedule : Icons.visibility),
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        isWatched ? 'Watched' : 'Mark as Watched',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        if (isUnreleased && !isWatched) {
-                                          AppToasts.showInfo(context, 'This movie hasn\'t been released yet. Long press to mark as watched.');
-                                          return;
-                                        }
-                                        ref
-                                            .read(movieControllerProvider)
-                                            .toggleStatus(movie.id, movie.status);
-                                      },
-                                      onLongPress: () {
-                                        if (isUnreleased && !isWatched) {
-                                          ref
-                                              .read(movieControllerProvider)
-                                              .toggleStatus(movie.id, movie.status);
-                                          AppToasts.showSuccess(context, 'Marked unreleased movie as watched.');
-                                        }
-                                      },
-                                    ),
                                   ],
                                 ),
                               ),
@@ -271,6 +231,95 @@ class MovieDetailsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // --- ACTIONS BAR ---
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isWatched
+                                    ? Theme.of(context).primaryColor.withOpacity(0.15)
+                                    : Colors.white12,
+                                foregroundColor: isWatched
+                                    ? Theme.of(context).primaryColor
+                                    : (isUnreleased ? Colors.white54 : Colors.white),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: isWatched 
+                                        ? Theme.of(context).primaryColor.withOpacity(0.5) 
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                              ),
+                              icon: Icon(
+                                isWatched ? Icons.check_circle : (isUnreleased ? Icons.schedule : Icons.visibility),
+                                size: 18,
+                              ),
+                              label: Text(
+                                isWatched ? 'Watched' : 'Mark as Watched',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onPressed: () {
+                                if (isUnreleased && !isWatched) {
+                                  AppToasts.showInfo(context, 'This movie hasn\'t been released yet. Long press to mark as watched.');
+                                  return;
+                                }
+                                ref
+                                    .read(movieControllerProvider)
+                                    .toggleStatus(movie.id, movie.status);
+                              },
+                              onLongPress: () {
+                                if (isUnreleased && !isWatched) {
+                                  ref
+                                      .read(movieControllerProvider)
+                                      .toggleStatus(movie.id, movie.status);
+                                  AppToasts.showSuccess(context, 'Marked unreleased movie as watched.');
+                                }
+                              },
+                            ),
+                          ),
+                          if (trailerAsync.value != null) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white12,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: const BorderSide(color: Colors.transparent),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.play_arrow, size: 18),
+                                label: const Text(
+                                  'Watch Trailer',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: () async {
+                                  final url = Uri.parse('https://www.youtube.com/watch?v=${trailerAsync.value}');
+                                  try {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  } catch (_) {}
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
                       if (movie.overview.isNotEmpty) ...[
                         const Text(
                           'Synopsis',
@@ -313,44 +362,55 @@ class MovieDetailsScreen extends ConsumerWidget {
                               return Container(
                                 width: 90,
                                 margin: const EdgeInsets.only(right: 16),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        width: 90,
-                                        height: 110,
-                                        color: Colors.grey[900],
-                                        child: imageUrl != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: imageUrl,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : const Icon(Icons.person, color: Colors.grey),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    final actorName = actor['name'];
+                                    if (actorName != null) {
+                                      ref.read(bottomNavIndexProvider.notifier).state = 2;
+                                      ref.read(searchQueryProvider.notifier).state = actorName;
+                                      Navigator.popUntil(context, (route) => route.isFirst);
+                                    }
+                                  },
+                                  child: Column(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Container(
+                                          width: 90,
+                                          height: 110,
+                                          color: Colors.grey[900],
+                                          child: imageUrl != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: imageUrl,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : const Icon(Icons.person, color: Colors.grey),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      actor['name'] ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        actor['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    Text(
-                                      actor['character'] ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.white54,
+                                      Text(
+                                        actor['character'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white54,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             },

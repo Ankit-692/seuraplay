@@ -17,6 +17,7 @@ class Movies extends Table {
   DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get genres => text().nullable()();
   TextColumn get castList => text().nullable()();
+  TextColumn get trailerKey => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -33,6 +34,7 @@ class TvShows extends Table {
   DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get genres => text().nullable()();
   TextColumn get castList => text().nullable()();
+  TextColumn get trailerKey => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

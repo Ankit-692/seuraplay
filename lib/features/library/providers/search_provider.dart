@@ -32,11 +32,46 @@ class SearchController extends StateNotifier<SearchState> {
       // 2. Make the API call
       final rawResults = await repository.search(query);
       
-      // 3. Filter out 'person' results (actors/directors)
-      final filteredResults = rawResults.where((item) {
+      // 3. Filter out 'person' results but include their known movies/shows
+      final List<dynamic> filteredResults = [];
+      bool fetchedFullCredits = false;
+      
+      for (var item in rawResults) {
         final mediaType = item['media_type'];
-        return mediaType == 'tv' || mediaType == 'movie';
-      }).toList();
+        if (mediaType == 'tv' || mediaType == 'movie') {
+          filteredResults.add(item);
+        } else if (mediaType == 'person') {
+          // Fetch full credits for the top person match to show their entire filmography
+          if (!fetchedFullCredits) {
+            fetchedFullCredits = true;
+            try {
+              final credits = await repository.getPersonCredits(item['id']);
+              for (var credit in credits) {
+                final kType = credit['media_type'];
+                if (kType == 'tv' || kType == 'movie') {
+                  if (!filteredResults.any((e) => e['id'] == credit['id'])) {
+                    filteredResults.add(credit);
+                  }
+                }
+              }
+              continue; // Skip the known_for fallback if we successfully got full credits
+            } catch (_) {}
+          }
+          
+          // Fallback to known_for for other people to avoid spamming the API
+          if (item['known_for'] != null) {
+            for (var knownFor in item['known_for']) {
+              final kType = knownFor['media_type'];
+              if (kType == 'tv' || kType == 'movie') {
+                // Ensure we don't add duplicates
+                if (!filteredResults.any((e) => e['id'] == knownFor['id'])) {
+                  filteredResults.add(knownFor);
+                }
+              }
+            }
+          }
+        }
+      }
 
       state = SearchState(isLoading: false, results: filteredResults);
     } catch (e) {
@@ -49,3 +84,6 @@ class SearchController extends StateNotifier<SearchState> {
 final searchProvider = StateNotifierProvider<SearchController, SearchState>((ref) {
   return SearchController(ref);
 });
+
+// A provider to programmatically set the search query from anywhere
+final searchQueryProvider = StateProvider<String>((ref) => '');
