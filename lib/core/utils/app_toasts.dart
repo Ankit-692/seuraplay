@@ -23,7 +23,7 @@ class AppToasts {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -46,7 +46,7 @@ class AppToasts {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
