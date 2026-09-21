@@ -7,7 +7,7 @@ import '../../../core/database/database.dart';
 import '../providers/show_details_provider.dart';
 import '../../library/repositories/library_repository.dart';
 import '../../../core/utils/app_toasts.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 class ShowDetailsScreen extends ConsumerWidget {
   final int showId;
 
@@ -53,16 +53,6 @@ class ShowDetailsScreen extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.refresh, color: Colors.white),
                     onPressed: () async {
-                      const storage = FlutterSecureStorage();
-                      final token = await storage.read(key: 'user_tmdb_token');
-
-                      if (!context.mounted) return;
-
-                      if (token == null || token.trim().isEmpty) {
-                        AppToasts.showInfo(context, 'Missing TMDB API Token. Please update it in Settings.');
-                        return;
-                      }
-
                       AppToasts.showInfo(context, 'Refreshing show data...');
                       try {
                         await ref.read(libraryRepositoryProvider).addTvShow(showId);
@@ -72,9 +62,9 @@ class ShowDetailsScreen extends ConsumerWidget {
                       } catch (e) {
                         if (context.mounted) {
                           if (e.toString().contains('401')) {
-                            AppToasts.showError(context, 'Invalid TMDB API Token. Please update it in Settings.');
+                            AppToasts.showError(context, 'Invalid TMDB API Token in code.');
                           } else {
-                            AppToasts.showError(context, 'Failed to refresh: $e');
+                            AppToasts.showError(context, 'Failed to update show data.');
                           }
                         }
                       }

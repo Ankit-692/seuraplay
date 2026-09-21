@@ -11,12 +11,6 @@ import 'package:file_picker/file_picker.dart';
 // Provides a single instance of secure storage
 final secureStorageProvider = Provider((ref) => const FlutterSecureStorage());
 
-// Fetches the saved token so the UI can display it
-final tmdbTokenProvider = FutureProvider<String>((ref) async {
-  final storage = ref.watch(secureStorageProvider);
-  return await storage.read(key: 'user_tmdb_token') ?? '';
-});
-
 // Fetches the auto backup status so the UI can display it
 final autoBackupProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
@@ -24,7 +18,6 @@ final autoBackupProvider = FutureProvider<bool>((ref) async {
 });
 
 class SettingsState {
-  final bool isSavingToken;
   final bool isBackingUp;
   final bool isRestoring;
   final bool isLocalBackingUp;
@@ -33,7 +26,6 @@ class SettingsState {
   final bool isTogglingAutoBackup;
 
   SettingsState({
-    this.isSavingToken = false,
     this.isBackingUp = false,
     this.isRestoring = false,
     this.isLocalBackingUp = false,
@@ -43,7 +35,6 @@ class SettingsState {
   });
 
   SettingsState copyWith({
-    bool? isSavingToken,
     bool? isBackingUp,
     bool? isRestoring,
     bool? isLocalBackingUp,
@@ -52,7 +43,6 @@ class SettingsState {
     bool? isTogglingAutoBackup,
   }) {
     return SettingsState(
-      isSavingToken: isSavingToken ?? this.isSavingToken,
       isBackingUp: isBackingUp ?? this.isBackingUp,
       isRestoring: isRestoring ?? this.isRestoring,
       isLocalBackingUp: isLocalBackingUp ?? this.isLocalBackingUp,
@@ -64,15 +54,9 @@ class SettingsState {
 }
 
 class SettingsController extends StateNotifier<SettingsState> {
-  final FlutterSecureStorage _storage;
-  
-  SettingsController(this._storage) : super(SettingsState());
+  SettingsController() : super(SettingsState());
 
-  Future<void> saveToken(String token) async {
-    state = state.copyWith(isSavingToken: true);
-    await _storage.write(key: 'user_tmdb_token', value: token.trim());
-    state = state.copyWith(isSavingToken: false);
-  }
+
 
   Future<void> toggleAutoBackup(bool enable) async {
     state = state.copyWith(isTogglingAutoBackup: true);
@@ -182,5 +166,5 @@ class SettingsController extends StateNotifier<SettingsState> {
 }
 
 final settingsControllerProvider = StateNotifierProvider<SettingsController, SettingsState>((ref) {
-  return SettingsController(ref.watch(secureStorageProvider));
+  return SettingsController();
 });

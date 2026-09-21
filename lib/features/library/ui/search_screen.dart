@@ -2,16 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:seuraplay/features/library/repositories/library_repository.dart';
-import '../../settings/providers/settings_provider.dart';
+
 import '../providers/search_provider.dart';
 import '../providers/library_providers.dart';
 import '../../../core/utils/app_toasts.dart';
 
-class SearchScreen extends ConsumerWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final searchState = ref.watch(searchProvider);
     final searchController = ref.read(searchProvider.notifier);
 
@@ -21,8 +34,7 @@ class SearchScreen extends ConsumerWidget {
     final savedMovieIds =
         savedMoviesAsync.value?.map((m) => m.id).toSet() ?? {};
 
-    final tokenAsync = ref.watch(tmdbTokenProvider);
-    final hasToken = tokenAsync.value?.isNotEmpty == true;
+
 
     return Scaffold(
       body: SafeArea(
@@ -43,6 +55,7 @@ class SearchScreen extends ConsumerWidget {
                   ),
                 ),
                 child: TextField(
+                  controller: _textController,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   decoration: InputDecoration(
                     hintText: 'Search for shows or movies...',
@@ -54,6 +67,21 @@ class SearchScreen extends ConsumerWidget {
                       Icons.search_rounded,
                       color: Colors.white30,
                       size: 20,
+                    ),
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _textController,
+                      builder: (context, value, child) {
+                        if (value.text.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return IconButton(
+                          icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 20),
+                          onPressed: () {
+                            _textController.clear();
+                            searchController.search('');
+                          },
+                        );
+                      },
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -68,47 +96,7 @@ class SearchScreen extends ConsumerWidget {
 
             // --- SEARCH RESULTS ---
             Expanded(
-              child: tokenAsync.isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    )
-                  : !hasToken
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              size: 48,
-                              color: Colors.orangeAccent,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'API Token Required',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Please create a completely free TMDB account and paste the API Read Access Token in the Settings page to start searching.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey,
-                                height: 1.4,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : searchState.isLoading
+              child: searchState.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
                         color: Theme.of(context).primaryColor,

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/api_keys.dart';
 
 final secureStorageProvider = Provider((ref) => const FlutterSecureStorage());
 
@@ -17,8 +18,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final userTmdbToken = await storage.read(key: 'user_tmdb_token') ?? '';
-        options.headers['Authorization'] = 'Bearer $userTmdbToken';
+        options.headers['Authorization'] = 'Bearer $tmdbApiKey';
         return handler.next(options);
       },
     ),

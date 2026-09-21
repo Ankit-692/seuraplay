@@ -10,96 +10,22 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final TextEditingController _tokenController = TextEditingController();
-
   @override
   void dispose() {
-    _tokenController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final tokenAsync = ref.watch(tmdbTokenProvider);
     final settingsState = ref.watch(settingsControllerProvider);
     final settingsController = ref.read(settingsControllerProvider.notifier);
-
-    // Initialize the text field once the token is loaded
-    tokenAsync.whenData((token) {
-      if (_tokenController.text.isEmpty && token.isNotEmpty) {
-        _tokenController.text = token;
-      }
-    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // --- TMDB API KEY SECTION ---
-          const Text(
-            'TMDB API Read Access Token',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Seuraplay requires a free TMDB API Read Access Token to fetch show data. Please ensure you use the much longer "v4 auth" token, not the short v3 API Key.',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _tokenController,
-            obscureText: true, // Hides the token like a password
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Paste your API Read Access Token (v4) here',
-              filled: true,
-              fillColor: Theme.of(context).cardColor,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: settingsState.isSavingToken
-                ? null
-                : () async {
-                    await settingsController.saveToken(_tokenController.text);
-                    if (context.mounted) {
-                      // Refresh the Riverpod provider that holds the Dio client
-                      // so it immediately uses the new token!
-                      ref.invalidate(tmdbTokenProvider);
-                      AppToasts.showSuccess(context, 'API Key saved successfully!');
-                    }
-                  },
-            child: settingsState.isSavingToken
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.black,
-                    ),
-                  )
-                : const Text(
-                    'Save API Key',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-          ),
 
-          const SizedBox(height: 40),
-          const Divider(),
-          const SizedBox(height: 24),
 
           Container(
             padding: const EdgeInsets.all(12),

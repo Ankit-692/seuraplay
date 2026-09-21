@@ -1,10 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:seuraplay/features/home/main_screen.dart';
 
-class IntroScreen extends StatelessWidget {
+class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
+
+  @override
+  State<IntroScreen> createState() => _IntroScreenState();
+}
+
+class _IntroScreenState extends State<IntroScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _hasScrolledToEnd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    
+    // Check if the content is already fully visible on first render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent <= 0) {
+        setState(() {
+          _hasScrolledToEnd = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hasScrolledToEnd && _scrollController.hasClients) {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 20) {
+        setState(() {
+          _hasScrolledToEnd = true;
+        });
+      }
+    }
+  }
 
   Future<void> _completeIntro(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -77,15 +118,14 @@ class IntroScreen extends StatelessWidget {
               // Information Cards
               Expanded(
                 child: ListView(
+                  controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _InfoCard(
                       icon: Icons.movie_filter_rounded,
                       title: 'Powered by TMDB',
-                      description: 'To fetch all the latest movie and TV show data, Seuraplay uses the TMDB database. Just create a free account to get your personal API Read Access Token (the much longer "v4 auth" one) and paste it in the Settings page!',
+                      description: 'Seuraplay uses the TMDB database to fetch all the latest movie and TV show data automatically.',
                       iconColor: Colors.blueAccent,
-                      linkText: 'Create a free TMDB account',
-                      onLinkTap: () => launchUrl(Uri.parse('https://www.themoviedb.org/signup')),
                     ),
                     const SizedBox(height: 16),
                     _InfoCard(
@@ -108,10 +148,10 @@ class IntroScreen extends StatelessWidget {
               // Get Started Button
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => _completeIntro(context),
+                onPressed: _hasScrolledToEnd ? () => _completeIntro(context) : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: _hasScrolledToEnd ? primaryColor : Colors.grey.withValues(alpha: 0.3),
+                  foregroundColor: _hasScrolledToEnd ? Colors.white : Colors.white54,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
